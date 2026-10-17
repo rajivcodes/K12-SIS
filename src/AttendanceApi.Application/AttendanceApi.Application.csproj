@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\AttendanceApi.Domain\AttendanceApi.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

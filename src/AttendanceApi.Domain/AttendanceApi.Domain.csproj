@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Entities, value objects and business rules. No project or package dependencies. -->
+
+</Project>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- One-off import: reads the legacy database through a connection string only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AttendanceApi.Infrastructure\AttendanceApi.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
