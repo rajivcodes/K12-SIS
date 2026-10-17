@@ -146,6 +146,21 @@ Answers from the product owner (17 Oct 2026). They extend the plan and are bindi
 | `SeedAdmin:*` | none | First admin account (`UserName`, `Password`, optional `DisplayName`, `Email`), created at startup only if no admin exists. If unset, a warning is logged and no admin is created. |
 | `Database:ApplyMigrationsOnStartup` | `false` (`true` in `appsettings.Development.json`) | Apply pending EF Core migrations when the API starts. Production should run migrations as a separate deployment step. |
 
+## Running the API on the host
+
+Start SQL Server with `docker compose up -d sqlserver` (it uses `MSSQL_SA_PASSWORD` from `.env`), then store the secrets with user-secrets; they are never written to `appsettings*.json`:
+
+```bash
+dotnet user-secrets --project src/AttendanceApi.Api set "ConnectionStrings:AttendanceDb" "Server=localhost,1433;Database=AttendanceApi;User Id=sa;Password=<your SA password>;TrustServerCertificate=True"
+dotnet user-secrets --project src/AttendanceApi.Api set "Jwt:SigningKey" "<at least 32 random bytes, base64>"
+dotnet user-secrets --project src/AttendanceApi.Api set "SeedAdmin:UserName" "admin"
+dotnet user-secrets --project src/AttendanceApi.Api set "SeedAdmin:Password" "<initial admin password>"
+dotnet user-secrets --project src/AttendanceApi.Api set "DemoData:UserPassword" "<optional demo account password>"
+dotnet run --project src/AttendanceApi.Api
+```
+
+The API listens on `http://localhost:5080` (Swagger at `/swagger`) and runs in Development: it applies migrations and seeds the codes, the admin and the demo data on first start.
+
 ## Database migrations
 
 Migrations live in `src/AttendanceApi.Infrastructure/Persistence/Migrations` and are generated with the local `dotnet-ef` tool (no database needed to add one):

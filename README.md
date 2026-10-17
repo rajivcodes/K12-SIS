@@ -6,9 +6,9 @@ A .NET 8 Web API that replaces the daily-attendance module of a legacy VB6 + SQL
 
 Requires the .NET 8 SDK and Docker.
 
-* **Everything in Docker:** copy `.env.example` to `.env`, fill in the SQL Server password, a JWT signing key (`openssl rand -base64 48`) and the first admin's credentials, then run `docker compose up --build`. Open `http://localhost:8080/swagger`, call `POST /api/v1/auth/login`, and use **Authorize** with the token.
-* **API on the host:** start SQL Server with `docker compose up -d sqlserver`, set the same values with `dotnet user-secrets` (see the [configuration reference](docs/Decisions-Log.md#configuration-reference)), then `dotnet run --project src/AttendanceApi.Api`.
-* **Tests:** `dotnet test` runs 165 domain unit tests and 78 integration tests (API, persistence and legacy import) against a real SQL Server 2022 started by Testcontainers. They include a regression test for legacy defect D-01.
+* **Everything in Docker:** copy `.env.example` to `.env`, fill in the SQL Server password, a JWT signing key of at least 32 random bytes (`openssl rand -base64 48`, or in PowerShell `$b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)`) and the first admin's credentials, then run `docker compose up --build`. Open `http://localhost:8080/swagger`, call `POST /api/v1/auth/login`, and use **Authorize** with the token.
+* **API on the host:** start SQL Server with `docker compose up -d sqlserver`, set the same values with `dotnet user-secrets` ([exact commands](docs/Decisions-Log.md#running-the-api-on-the-host)), then `dotnet run --project src/AttendanceApi.Api` and open `http://localhost:5080/swagger`.
+* **Tests:** `dotnet test` runs 165 domain unit tests and 78 integration tests (API, persistence and legacy import) against a real SQL Server 2022 that Testcontainers starts (Docker must be running). They include a regression test for legacy defect D-01.
 
 In Development the API applies migrations and seeds the standard codes and, into an empty database only, **demo data**: two schools, eleven students and attendance up to yesterday. Set `DEMO_USER_PASSWORD` to also get the demo accounts `lincoln.clerk`, `roosevelt.clerk` and `district.viewer`. Real schools, students and enrollments come from the [legacy import tool](docs/Legacy-Import.md). Run it with `--dry-run` first; it can safely be run again.
 
