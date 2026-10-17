@@ -1,12 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- One-off import: reads the legacy database through a connection string only. -->
+  <!-- One-off import: reads the legacy database through a connection string only (no legacy code). -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <UserSecretsId>attendance-legacy-import-3f2a9c1e-5b7d-4e8f-a1c6-9d0e2b4f6a83</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AttendanceApi.Infrastructure\AttendanceApi.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="legacyimport.settings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Legacy\assumed-legacy-schema.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

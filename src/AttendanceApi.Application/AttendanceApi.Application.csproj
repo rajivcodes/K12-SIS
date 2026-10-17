@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- EF Core (DbSet, LINQ, transactions, bulk ExecuteUpdate); provider-independent. SQL Server lives in Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AttendanceApi.Domain\AttendanceApi.Domain.csproj" />
   </ItemGroup>
 

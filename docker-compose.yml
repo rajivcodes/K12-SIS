@@ -30,8 +30,13 @@ services:
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
       SeedAdmin__UserName: ${SEED_ADMIN_USERNAME:?set SEED_ADMIN_USERNAME in .env}
       SeedAdmin__Password: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in .env}
+      # Demo data is on in Development; set DEMO_USER_PASSWORD to also create demo clerk/viewer accounts.
+      DemoData__UserPassword: ${DEMO_USER_PASSWORD:-}
     ports:
       - "8080:8080"
+    volumes:
+      - apilogs:/app/logs
 
 volumes:
   sqldata:
+  apilogs:
