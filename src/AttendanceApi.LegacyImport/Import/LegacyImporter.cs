@@ -487,6 +487,14 @@ public sealed partial class LegacyImporter
                 return;
             }
 
+            // Imported earlier, but since corrected by a user of the new system (saves record their user ID;
+            // imports never do): the correction wins.
+            if (record.ModifiedByUserId is not null || record.CreatedByUserId is not null)
+            {
+                Skip(counts, AttendanceTable, IssueCategories.KeptNewSystem, key, $"The imported record for student {studentId} on {date:yyyy-MM-dd} was changed in the new system by {record.ModifiedBy}; kept.");
+                return;
+            }
+
             record.ReplaceImported(placement, imported);
             SetMap(AttendanceTable, Key(key), record.Id);
             counts.Updated++;

@@ -42,14 +42,14 @@ public sealed class AttendanceHistoryQuery
 
     public async Task<AttendanceHistoryResponse> HandleAsync(int studentId, string? schoolYear, CancellationToken cancellationToken)
     {
+        // Access first: a non-admin gets 403 for any student outside their schools, existing or not.
+        var year = await SchoolYearParameter.ResolveAsync(schoolYear, studentId, _db, _clock.Today, cancellationToken);
+        await _access.EnsureStudentAccessAsync(studentId, year, cancellationToken);
         var student = await _db.Students
             .Where(s => s.Id == studentId)
             .Select(s => new { s.FirstName, s.LastName })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Student {studentId} does not exist.");
-
-        var year = await SchoolYearParameter.ResolveAsync(schoolYear, studentId, _db, _clock.Today, cancellationToken);
-        await _access.EnsureStudentAccessAsync(studentId, year, cancellationToken);
 
         var label = year.ToString();
         var records = await (

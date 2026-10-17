@@ -39,11 +39,11 @@ public sealed class ForbiddenException : AppException
     }
 }
 
-/// <summary>401: the account behind a valid token no longer exists or is inactive.</summary>
+/// <summary>401: the account behind a valid token is inactive, deleted, or now has a different role.</summary>
 public sealed class AccountInactiveException : AppException
 {
     public AccountInactiveException()
-        : base("Unauthorized", "The account is inactive or no longer exists.")
+        : base("Unauthorized", "The account is inactive, no longer exists, or its role has changed. Sign in again.")
     {
     }
 }

@@ -1,3 +1,4 @@
+using System.Data;
 using AttendanceApi.Application.Abstractions;
 using AttendanceApi.Application.Common;
 using AttendanceApi.Domain.Users;
@@ -98,6 +99,21 @@ public sealed class UsersAdmin
             throw new RequestValidationException("role and isActive are required.");
         }
 
+        // Serializable, so two admins demoting each other at the same moment can't both pass the last-admin
+        // check; the loser is a deadlock victim, which the execution strategy retries and then rejects (422).
+        var strategy = _db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async ct =>
+        {
+            _db.ChangeTracker.Clear();
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var response = await UpdateInTransactionAsync(userId, request, role, isActive, ct);
+            await transaction.CommitAsync(ct);
+            return response;
+        }, cancellationToken);
+    }
+
+    private async Task<UserResponse> UpdateInTransactionAsync(int userId, UpdateUserRequest request, UserRole role, bool isActive, CancellationToken cancellationToken)
+    {
         var user = await LoadAsync(userId, cancellationToken);
         var stopsBeingActiveAdmin = user.Role == UserRole.Admin && user.IsActive && (role != UserRole.Admin || !isActive);
         if (stopsBeingActiveAdmin

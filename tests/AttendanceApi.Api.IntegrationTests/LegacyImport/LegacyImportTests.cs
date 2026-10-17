@@ -176,6 +176,35 @@ public class LegacyImportTests : PersistenceTestBase
     }
 
     [Fact]
+    public async Task Running_again_keeps_corrections_made_in_the_new_system_to_imported_records()
+    {
+        await CreateLegacyDatabaseAsync();
+        await ImportAsync();
+        DateOnly date;
+        await using (var db = NewContext())
+        {
+            // A clerk corrects an imported absence to excused through the API (same record, now modified by a user).
+            var clerk = Domain.Users.AppUser.Create("clerk", "Clerk", null, "hash", Domain.Users.UserRole.AttendanceClerk);
+            db.AppUsers.Add(clerk);
+            await db.SaveChangesAsync();
+            var ada = await db.Students.SingleAsync(s => s.LastName == "Lovelace");
+            var record = await db.AttendanceRecords.SingleAsync(r => r.StudentId == ada.Id && r.Date == new DateOnly(2026, 9, 15));
+            date = record.Date;
+            var excused = await db.AttendanceCodes.SingleAsync(c => c.Code == "E");
+            record.Update(new AttendancePlacement(record.SchoolId, record.Date, record.SchoolYearId, record.TermId), excused, 0, "Note from parent", new Actor(clerk.Id, clerk.UserName), ImportTime);
+            await db.SaveChangesAsync();
+        }
+
+        var second = await ImportAsync();
+
+        Assert.Equal(1, second.CountIssues(IssueCategories.KeptNewSystem));
+        await using var check = NewContext();
+        var kept = await check.AttendanceRecords.SingleAsync(r => r.Date == date && r.Notes == "Note from parent");
+        Assert.True(kept.IsExcused);
+        Assert.Equal("clerk", kept.ModifiedBy);
+    }
+
+    [Fact]
     public async Task A_dry_run_reports_everything_and_changes_nothing()
     {
         await CreateLegacyDatabaseAsync();

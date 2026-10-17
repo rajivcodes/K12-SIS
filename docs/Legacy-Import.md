@@ -9,7 +9,8 @@ The legacy repository did not include `Schools` or `SchoolTerms`, and some colum
 ## Run
 
 ```bash
-# 1. Dry run: full report, every change rolled back
+# 1. Dry run: full report, every data change rolled back
+#    (--apply-migrations still creates/updates the schema; that part is not rolled back)
 dotnet run --project src/AttendanceApi.LegacyImport -- \
   --legacy "<legacy connection string>" --target "<new database connection string>" \
   --apply-migrations --dry-run --report import-dry-run.md
@@ -22,7 +23,7 @@ Connection strings can also come from user-secrets or the `ConnectionStrings__Le
 
 ## What it does
 
-The whole run is **one transaction**. Every imported row is recorded in `LegacyIdMap`, so a second run updates instead of duplicating, and records entered in the new system are never overwritten. Each run adds an `AuditEntry`.
+The whole run is **one transaction** (schema migrations, if requested, run before it and are kept even in a dry run). Every imported row is recorded in `LegacyIdMap`, so a second run refreshes earlier imports instead of duplicating them. Records entered in the new system, and imported records a user has since corrected, are never overwritten; they are listed in the report. Each run adds an `AuditEntry`.
 
 | Legacy | New | Rules |
 |---|---|---|

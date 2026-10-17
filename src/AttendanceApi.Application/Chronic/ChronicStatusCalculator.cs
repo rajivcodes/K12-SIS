@@ -10,7 +10,9 @@ namespace AttendanceApi.Application.Chronic;
 
 /// <summary>
 /// Loads what the domain rules need and evaluates chronic absence for a set of students and one school year.
-/// Totals are always counted live from the records across all schools (D-03, D-08, D-09).
+/// Totals are always counted live from the records across all schools (D-03, D-08, D-09). Both chronic
+/// results use only absences dated up to today, the same period the rate's enrolled days cover, so absences
+/// entered ahead of time (when a school allows future dates) can't make a student chronic early.
 /// Used by both the save flow (totals and alerts) and the chronic-status endpoint.
 /// </summary>
 public sealed class ChronicStatusCalculator
@@ -62,6 +64,13 @@ public sealed class ChronicStatusCalculator
     {
         var label = year.ToString();
         var totals = await CountTotalsAsync(studentIds, year, cancellationToken);
+        var absencesToDate = await (
+                from r in _db.AttendanceRecords
+                join y in _db.SchoolYears on r.SchoolYearId equals y.Id
+                where studentIds.Contains(r.StudentId) && y.Label == label && r.IsAbsent && r.Date <= today
+                group r by r.StudentId into g
+                select new { StudentId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.StudentId, x => x.Count, cancellationToken);
 
         var enrollments = await _db.StudentEnrollments
             .Where(e => studentIds.Contains(e.StudentId))
@@ -104,6 +113,7 @@ public sealed class ChronicStatusCalculator
         {
             var studentEnrollments = enrollments.Where(e => e.StudentId == studentId).ToList();
             var studentTotals = totals[studentId];
+            var absences = absencesToDate.GetValueOrDefault(studentId);
             var currentSchoolId = CurrentSchoolResolver.Resolve(year, studentEnrollments, years);
             var enrolledDays = EnrolledDaysCalculator.Calculate(year, studentEnrollments, calendars, today);
 
@@ -112,12 +122,12 @@ public sealed class ChronicStatusCalculator
             if (currentSchoolId is { } current)
             {
                 var schoolSettings = settings.GetValueOrDefault(current) ?? SchoolAttendanceSettings.CreateDefault(current);
-                result = ChronicAbsenceEvaluator.Evaluate(studentTotals.TotalAbsences, enrolledDays, schoolSettings);
+                result = ChronicAbsenceEvaluator.Evaluate(absences, enrolledDays, schoolSettings);
             }
             else
             {
                 // No current school: show both results with the defaults, but don't decide (Phase 2 follow-up answer).
-                result = ChronicAbsenceEvaluator.Evaluate(studentTotals.TotalAbsences, enrolledDays, SchoolAttendanceSettings.CreateDefault(0))
+                result = ChronicAbsenceEvaluator.Evaluate(absences, enrolledDays, SchoolAttendanceSettings.CreateDefault(0))
                     with { Status = ChronicStatus.NotDeterminable };
                 reason = NoEnrollmentReason;
             }

@@ -7,7 +7,8 @@ namespace AttendanceApi.Application.Common;
 
 /// <summary>
 /// School scoping (plan §11): admins see everything; other users only their assigned schools (AppUserSchool).
-/// Also rejects tokens of accounts deactivated after the token was issued.
+/// Also rejects tokens that no longer match the account: deactivated, deleted, or given another role since
+/// the token was issued (so a demoted admin loses admin rights at once, not when the token expires).
 /// </summary>
 public sealed class AccessGuard
 {
@@ -71,13 +72,14 @@ public sealed class AccessGuard
         }
     }
 
-    /// <summary>For admin endpoints: the role is checked by the Admin policy; this rejects deactivated accounts.</summary>
+    /// <summary>For admin endpoints: the Admin policy checks the token's role; this checks it is still current.</summary>
     public Task EnsureActiveUserAsync(CancellationToken cancellationToken) => EnsureActiveAsync(cancellationToken);
 
     private async Task EnsureActiveAsync(CancellationToken cancellationToken)
     {
-        var active = await _db.AppUsers.AnyAsync(u => u.Id == _user.UserId && u.IsActive, cancellationToken);
-        if (!active)
+        var role = _user.Role;
+        var current = await _db.AppUsers.AnyAsync(u => u.Id == _user.UserId && u.IsActive && u.Role == role, cancellationToken);
+        if (!current)
         {
             throw new AccountInactiveException();
         }

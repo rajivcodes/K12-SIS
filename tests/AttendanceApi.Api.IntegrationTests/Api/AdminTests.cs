@@ -82,6 +82,7 @@ public class AdminTests : ApiTestBase
         await ProblemAsync(await admin.PutAsJsonAsync($"/api/v1/admin/schools/{schoolId}/settings", valid with { chronicRateThreshold = 0m }), 400);
         await ProblemAsync(await admin.PutAsJsonAsync($"/api/v1/admin/schools/{schoolId}/settings", new { chronicMethod = "Count" }), 400);
         await ProblemAsync(await admin.PutAsJsonAsync($"/api/v1/admin/schools/{schoolId}/settings", valid with { chronicCountThreshold = 0 }), 400);
+        await ProblemAsync(await admin.PutAsJsonAsync($"/api/v1/admin/schools/{schoolId}/settings", new { valid.chronicMethod, valid.chronicCountThreshold, valid.chronicRateThreshold, valid.allowFutureDates, valid.allowWeekends, valid.allowOutsideTerm, maxBackdateDays = 1_000_000 }), 400);
         await ProblemAsync(await admin.GetAsync("/api/v1/admin/schools/999999/settings"), 404);
     }
 

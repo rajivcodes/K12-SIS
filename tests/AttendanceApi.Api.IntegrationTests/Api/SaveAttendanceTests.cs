@@ -162,6 +162,9 @@ public class SaveAttendanceTests : ApiTestBase
         await ProblemAsync(await SaveAsync(client, schoolId, Today), 400);
         await ProblemAsync(await client.PostAsync($"/api/v1/schools/{schoolId}/attendance/2026-13-45", new StringContent("[]", System.Text.Encoding.UTF8, "application/json")), 400);
         await ProblemAsync(await SaveAsync(client, 987_654, Today, new { studentId = 1, code = "P" }), 404);
+        await ProblemAsync(await client.PostAsync($"/api/v1/schools/{schoolId}/attendance/2026-10-15", new StringContent("[null]", System.Text.Encoding.UTF8, "application/json")), 400);
+        await ProblemAsync(await SaveAsync(client, schoolId, new DateOnly(1899, 12, 1), new { studentId = 1, code = "P" }), 400);
+        await ProblemAsync(await SaveAsync(client, schoolId, new DateOnly(9999, 9, 1), new { studentId = 1, code = "P" }), 400);
     }
 
     [Fact]

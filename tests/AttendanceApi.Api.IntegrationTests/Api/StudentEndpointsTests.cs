@@ -126,6 +126,29 @@ public class StudentEndpointsTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Absences_entered_ahead_of_time_do_not_count_towards_chronic_status_yet()
+    {
+        var schoolId = await CreateSchoolAsync("Future School", configure: s =>
+        {
+            s.SetChronicRules(ChronicMethod.Either, 2, 10m);
+            s.SetDateRules(true, false, false, null, 30);
+        });
+        var studentId = await CreateStudentAsync("Planner", schoolId);
+        var client = await AdminClientAsync();
+
+        // Three excused absences pre-entered for next week (a planned trip).
+        await SaveDaysAsync(client, schoolId, studentId, "E", new DateOnly(2026, 10, 19), new DateOnly(2026, 10, 20), new DateOnly(2026, 10, 21));
+
+        var status = await ReadAsync<ChronicStatusResponse>(await client.GetAsync($"/api/v1/students/{studentId}/chronic-absenteeism"));
+
+        Assert.Equal(3, status.TotalAbsences); // totals include every record
+        Assert.Equal(0, status.Count.TotalAbsences); // the evaluation counts absences up to today
+        Assert.Equal(0m, status.Rate.RatePercent);
+        Assert.Equal(ChronicStatus.NotChronic, status.Status);
+        Assert.Null(status.OpenAlert);
+    }
+
+    [Fact]
     public async Task Student_without_enrollment_in_the_year_is_not_determinable_with_default_thresholds()
     {
         var schoolId = await CreateSchoolAsync("Lincoln");

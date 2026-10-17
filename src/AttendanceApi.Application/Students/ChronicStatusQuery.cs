@@ -61,14 +61,14 @@ public sealed class ChronicStatusQuery
 
     public async Task<ChronicStatusResponse> HandleAsync(int studentId, string? schoolYear, CancellationToken cancellationToken)
     {
+        // Access first: a non-admin gets 403 for any student outside their schools, existing or not.
+        var today = _clock.Today;
+        var year = await SchoolYearParameter.ResolveAsync(schoolYear, studentId, _db, today, cancellationToken);
+        await _access.EnsureStudentAccessAsync(studentId, year, cancellationToken);
         if (!await _db.Students.AnyAsync(s => s.Id == studentId, cancellationToken))
         {
             throw new NotFoundException($"Student {studentId} does not exist.");
         }
-
-        var today = _clock.Today;
-        var year = await SchoolYearParameter.ResolveAsync(schoolYear, studentId, _db, today, cancellationToken);
-        await _access.EnsureStudentAccessAsync(studentId, year, cancellationToken);
 
         var evaluation = (await _calculator.EvaluateAsync([studentId], year, today, cancellationToken))[studentId];
         var label = year.ToString();

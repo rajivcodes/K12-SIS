@@ -103,6 +103,29 @@ public class AuthTests : ApiTestBase
         await ProblemAsync(await client.GetAsync($"/api/v1/schools/{other}/attendance/2026-10-15"), 403);
         await ProblemAsync(await client.GetAsync($"/api/v1/students/{studentAtOther}/attendance"), 403);
         await ProblemAsync(await client.GetAsync($"/api/v1/students/{studentAtOther}/chronic-absenteeism"), 403);
+
+        // Unknown student IDs look the same as other schools' students (no ID probing).
+        await ProblemAsync(await client.GetAsync("/api/v1/students/999999/attendance"), 403);
+    }
+
+    [Fact]
+    public async Task A_demoted_admins_token_stops_working_immediately()
+    {
+        var schoolId = await CreateSchoolAsync("Lincoln");
+        var secondAdminId = await CreateUserAsync("second.admin", UserRole.Admin);
+        var secondAdmin = await ClientForAsync("second.admin");
+        var admin = await AdminClientAsync();
+
+        var demote = await admin.PutAsJsonAsync($"/api/v1/admin/users/{secondAdminId}", new { displayName = "Second", role = "Viewer", isActive = true, schoolIds = new[] { schoolId } });
+        Assert.Equal(HttpStatusCode.OK, demote.StatusCode);
+
+        // The old token still says Admin; it must not be able to act as one (e.g. re-promote itself).
+        await ProblemAsync(await secondAdmin.PutAsJsonAsync($"/api/v1/admin/users/{secondAdminId}", new { displayName = "Second", role = "Admin", isActive = true }), 401);
+        await ProblemAsync(await secondAdmin.GetAsync($"/api/v1/schools/{schoolId}/attendance/2026-10-15"), 401);
+
+        // Signing in again gives a Viewer token that works for reading.
+        var asViewer = await ClientForAsync("second.admin");
+        Assert.Equal(HttpStatusCode.OK, (await asViewer.GetAsync($"/api/v1/schools/{schoolId}/attendance/2026-10-15")).StatusCode);
     }
 
     [Fact]

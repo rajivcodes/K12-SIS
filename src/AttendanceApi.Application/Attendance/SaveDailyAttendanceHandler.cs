@@ -20,6 +20,11 @@ public sealed partial class SaveDailyAttendanceHandler
 {
     public const int MaxRows = 1000;
 
+    /// <summary>Attendance dates must fall in this range (keeps school-year arithmetic well inside DateOnly's limits).</summary>
+    public static readonly DateOnly MinDate = new(1901, 1, 1);
+
+    public static readonly DateOnly MaxDate = new(9998, 8, 31);
+
     private readonly IAttendanceDbContext _db;
     private readonly AccessGuard _access;
     private readonly ICurrentUser _user;
@@ -64,6 +69,16 @@ public sealed partial class SaveDailyAttendanceHandler
         if (rows.Count > MaxRows)
         {
             throw new RequestValidationException($"A batch can contain at most {MaxRows} rows.");
+        }
+
+        if (rows.Any(r => r is null))
+        {
+            throw new RequestValidationException("Attendance rows cannot be null.");
+        }
+
+        if (date < MinDate || date > MaxDate)
+        {
+            throw new RequestValidationException($"The date must be between {MinDate:yyyy-MM-dd} and {MaxDate:yyyy-MM-dd}.");
         }
 
         await _access.EnsureSchoolAccessAsync(schoolId, cancellationToken);

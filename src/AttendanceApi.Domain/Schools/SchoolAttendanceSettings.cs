@@ -8,6 +8,9 @@ public sealed class SchoolAttendanceSettings
     public const int DefaultChronicCountThreshold = 10;
     public const decimal DefaultChronicRateThreshold = 10.0m;
 
+    /// <summary>Upper bound for <see cref="MaxBackdateDays"/> and <see cref="MaxFutureDays"/> (10 years); use null for unlimited.</summary>
+    public const int MaxDayLimit = 3650;
+
     private SchoolAttendanceSettings()
     {
     }
@@ -74,7 +77,15 @@ public sealed class SchoolAttendanceSettings
         AllowFutureDates = allowFutureDates;
         AllowWeekends = allowWeekends;
         AllowOutsideTerm = allowOutsideTerm;
-        MaxBackdateDays = Guard.NonNegative(maxBackdateDays, "Max backdate days");
-        MaxFutureDays = Guard.NonNegative(maxFutureDays, "Max future days");
+        MaxBackdateDays = DayLimit(maxBackdateDays, "Max backdate days");
+        MaxFutureDays = DayLimit(maxFutureDays, "Max future days");
+    }
+
+    private static int? DayLimit(int? value, string name)
+    {
+        Guard.NonNegative(value, name);
+        return value > MaxDayLimit
+            ? throw new DomainException($"{name} must be at most {MaxDayLimit}; leave it empty for unlimited.")
+            : value;
     }
 }
