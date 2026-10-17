@@ -67,3 +67,8 @@ CREATE TABLE StudentAlerts (
     ResolvedDate DATETIME     NULL,
     ResolvedBy   VARCHAR(100) NULL
 );
+
+-- StudentAttendanceSummary (StudentID, SchoolYear, TotalAbsences, ...) also exists in the legacy schema but is
+-- intentionally NOT read: its totals are wrong (D-01 overwrote rows, D-03 counted all years, D-08 overwrote
+-- transfers, D-09 drifted). The import recalculates the new summary from the imported records instead
+-- (Implementation-Plan.md §8 step 7).

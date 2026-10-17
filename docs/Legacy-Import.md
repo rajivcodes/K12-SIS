@@ -32,7 +32,7 @@ The whole run is **one transaction**. Every imported row is recorded in `LegacyI
 | Students | Student + StudentEnrollment | One open enrollment at the current school, starting at the school-year start of the student's first legacy attendance (else `CreatedDate`). Rows without a name are skipped. |
 | StudentAttendance | AttendanceRecord | **Stored absent/excused flags and the legacy audit user and timestamps are kept.** Year and term come from the school's calendar (a default year is created if none covers the date). Duplicates per student and day: the most recently changed row wins. Unknown codes (D-07) get an inactive placeholder code. Negative minutes become 0. |
 | StudentAlerts | StudentAlert | Type, message and resolution kept. A second open chronic alert for the same student and year is skipped. |
-| StudentAttendanceSummary | (not read) | **Recalculated** from the imported records per school year, because legacy totals are wrong (D-01, D-03). |
+| StudentAttendanceSummary | (intentionally not read) | **Recalculated** from the imported records per school year, because the legacy totals are wrong (D-01, D-03, D-08, D-09). |
 
 Legacy `DATETIME` values have no time zone; they are stored as UTC unchanged (reported as an assumption).
 

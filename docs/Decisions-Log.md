@@ -91,6 +91,7 @@ From sections 1 and 11 of the [implementation plan](Implementation-Plan.md).
 | 6 | Enrollment for legacy students (no history, G-04): one open enrollment at the current school starting at the school-year start of the first legacy attendance, else `CreatedDate`. Students whose school doesn't exist are imported without an enrollment and reported. | Plan §8 step 3; earliest start covers the imported history for rates and access. |
 | 6 | Totals (`StudentAttendanceSummary`) are recalculated from the imported records; the legacy summary is never read. A second open chronic alert for the same student and year is skipped (the newest is kept). | D-01/D-03/D-09; the filtered unique index. |
 | 6 | The tool logs with Serilog to the console, writes a Markdown report (counts per table + every issue by category) and exits 0/1/2. Settings file `legacyimport.settings.json`, user-secrets or environment variables. | Operable by someone who didn't write it. |
+| 7 | The README is kept to one page (deliverable limit): how to run and test, key decisions, and how each legacy unknown was handled. This log, [Legacy-Import.md](Legacy-Import.md), the [analysis](Legacy-System-Analysis.md) and the [plan](Implementation-Plan.md) hold the detail. | Readable in one sitting; nothing lost. |
 
 ---
 
@@ -113,7 +114,7 @@ From section 7 (G-01 to G-10) of the [legacy analysis](Legacy-System-Analysis.md
 
 ### Open questions (raised during implementation)
 
-Answers from the product owner (17 Oct 2026). They extend the plan and are binding for later phases.
+Answers from the product owner (17 Oct 2026). They extend the plan and are binding.
 
 | # | Question | Answer |
 |---|---|---|
@@ -126,6 +127,8 @@ Answers from the product owner (17 Oct 2026). They extend the plan and are bindi
 | Q7 | Which rows are skipped when the same student appears more than once in a batch? | **All copies** are skipped and each is logged as a duplicate; nothing is saved for that student. |
 | Q8 | What is the overall status when the deciding method needs the rate but it can't be calculated? | **Rate:** `NotDeterminable`. **Either:** `Chronic` if the count result is chronic, otherwise `NotDeterminable`. No alert unless the status is `Chronic`. |
 | Q9 | Should a row for an inactive student be skipped? | **Yes**, with the new skip reason `StudentInactive`, even if an enrollment covers the date. |
+| Q10 | What does the chronic endpoint return for a student with no enrollment in the requested year (no "current school")? | **Totals, both results with the district default thresholds, status `NotDeterminable` with a reason**, and no alert. |
+| Q11 | Which students may a non-admin read on the student endpoints (no school in the route)? | **Students enrolled at one of the user's schools during the requested school year**; the data returned still covers all schools. Otherwise 403. |
 
 ---
 
