@@ -9,7 +9,7 @@ Background documents (copied from the legacy repository):
 * [docs/Legacy-System-Analysis.md](docs/Legacy-System-Analysis.md): how the legacy system works, its business rules (BR-xx), defects (D-xx) and gaps (G-xx).
 * [docs/Implementation-Plan.md](docs/Implementation-Plan.md): the approved plan this solution follows.
 
-> **Status:** Phase 1 of 7 (solution skeleton). See [Delivery status](#delivery-status).
+> **Status:** Phase 2 of 7 (domain model and rules). See [Delivery status](#delivery-status).
 
 ---
 
@@ -137,6 +137,18 @@ From sections 1 and 11 of the [implementation plan](docs/Implementation-Plan.md)
 | 1 | Central package management (`Directory.Packages.props`) and shared `Directory.Build.props` with nullable enabled and warnings as errors. | One place for versions; warnings can't accumulate. |
 | 1 | `dotnet-ef` 8.0.x as a local tool (`dotnet-tools.json`). | The globally installed `dotnet-ef` is 9.x; migrations must be generated with the EF Core 8 tool. |
 | 1 | Secrets via user-secrets locally and a git-ignored `.env` for Docker Compose; `appsettings.json` holds only empty placeholders. | The plan forbids committing the signing key; the same applies to the SA and seed-admin passwords. |
+| 2 | Phase 2 was built and tested with the .NET 8 SDK (8.0.131) on Linux as well as newer SDKs on Windows. | Confirms the solution builds with a plain .NET 8 SDK, with no newer SDK required. |
+| 2 | The domain is persistence-ignorant: entities with private setters, factory methods that enforce invariants (`DomainException`), and private parameterless constructors for EF Core. Rules are static, side-effect-free classes (`AttendanceDatePolicy`, `AttendanceRowValidator`, `EnrolledDaysCalculator`, `ChronicAbsenceEvaluator`, `CurrentSchoolResolver`) that take already-loaded data and "today"/"now" as arguments. | Every rule can be unit-tested without a database or a clock; the Application layer loads data with LINQ and supplies `IClock` values. |
+| 2 | A school-year label is the start date's calendar year plus one (`2026-2027` for a year starting in Aug or Sep 2026). Years are at most one year long; terms must sit inside their year and may not overlap; a school's years may not overlap or share a label. | Labels must match across schools so totals can be combined district-wide per school year (decision 6). |
+| 2 | A date range for a school and label is the school's own `SchoolYear` when it has one, otherwise the default 1 Sep – 31 Aug. | Lets "current school" (Q3) and enrollment overlap be decided even for a school whose year hasn't been created yet. |
+| 2 | Enrollment dates are inclusive: `ExitDate` is the last enrolled day (Q6). | Product-owner answer. |
+| 2 | Row checks run in a fixed order and report only the first failure: duplicate in batch, unknown student, inactive student, not enrolled, unknown/missing code, inactive code, negative minutes late, notes over 500 characters. | One clear reason per skipped row in the response and the issues log. |
+| 2 | A missing or blank code is skipped as `UnknownCode`; it is **not** defaulted to `P`. Codes are matched case-insensitively after trimming and stored upper-case. | BR-02 (blank = P) was a UI default, never a database rule; the API requires an explicit code. |
+| 2 | Duplicate student in a batch: every copy is skipped (Q7). Inactive student: new skip reason `StudentInactive` (Q9). | Product-owner answers. |
+| 2 | An issue row for a student ID that doesn't exist stores `StudentId = null` (the ID is in the detail text); raw codes over 20 characters are cut short for storage. | Keeps a real foreign key from the issues log to `Student`. |
+| 2 | Rate = absences × 100 ÷ enrolled days, compared **unrounded** with the threshold. Enrolled days use each enrollment's own school calendar; a day enrolled at two schools counts once; zero enrolled days is "not determinable", never a division by zero. | Plan §7; avoids a rounded 9.5% being treated as 10%. |
+| 2 | Rate not determinable (Q8): method Rate → `NotDeterminable`; method Either → `Chronic` if the count result is chronic, otherwise `NotDeterminable`. `NotDeterminable` never raises an alert. | Product-owner answer. |
+| 2 | Audit columns store both the user's ID and name (`CreatedByUserId`/`CreatedBy`, etc.); the ID is null only for system writes such as the legacy import. Timestamps must be `DateTimeKind.Utc`. | Plan §9 ("the user's ID and name") and Q2. |
 
 ---
 
@@ -168,6 +180,10 @@ Answers from the product owner (17 Oct 2026). They extend the plan and are bindi
 | Q3 | What is the student's "current school" for the count threshold, the deciding `ChronicMethod` and the alert's SchoolId? | **The school of the student's latest enrollment in that school year** (latest EntryDate overlapping the year). |
 | Q4 | Settings have no limit on how far ahead entry is allowed. | **New setting `MaxFutureDays`** (null = unlimited), admin-editable. It applies only when `AllowFutureDates` is true; mirrors `MaxBackdateDays`. |
 | Q5 | Replacement for the legacy roster proc (`sp_GetStudentsForAttendance`)? | **Yes, a roster endpoint in v1:** students enrolled at a school on a date (optional grade filter), each with any existing record for that date. Same role and school scoping as the history endpoint (Attendance.Read). |
+| Q6 | Is `StudentEnrollment.ExitDate` the last enrolled day or the first day not enrolled? | **Inclusive:** the student is enrolled on D when `EntryDate ≤ D ≤ ExitDate`. |
+| Q7 | Which rows are skipped when the same student appears more than once in a batch? | **All copies** are skipped and each is logged as a duplicate; nothing is saved for that student. |
+| Q8 | What is the overall status when the deciding method needs the rate but it can't be calculated? | **Rate:** `NotDeterminable`. **Either:** `Chronic` if the count result is chronic, otherwise `NotDeterminable`. No alert unless the status is `Chronic`. |
+| Q9 | Should a row for an inactive student be skipped? | **Yes**, with the new skip reason `StudentInactive`, even if an enrollment covers the date. |
 
 ---
 
@@ -176,7 +192,7 @@ Answers from the product owner (17 Oct 2026). They extend the plan and are bindi
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Solution, Docker Compose, README skeleton | Done |
-| 2 | Domain model and rules, with unit tests | Not started |
+| 2 | Domain model and rules, with unit tests | Done |
 | 3 | EF Core context, configurations, migration, seed data | Not started |
 | 4 | Save, history and chronic-status endpoints, with integration tests | Not started |
 | 5 | Admin endpoints (settings, calendar, issues log) | Not started |
