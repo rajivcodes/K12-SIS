@@ -9,7 +9,7 @@ Background documents (copied from the legacy repository):
 * [docs/Legacy-System-Analysis.md](docs/Legacy-System-Analysis.md): how the legacy system works, its business rules (BR-xx), defects (D-xx) and gaps (G-xx).
 * [docs/Implementation-Plan.md](docs/Implementation-Plan.md): the approved plan this solution follows.
 
-> **Status:** Phase 2 of 7 (domain model and rules). See [Delivery status](#delivery-status).
+> **Status:** Phase 3 of 7 (EF Core persistence, migration and seed data). See [Delivery status](#delivery-status).
 
 ---
 
@@ -97,7 +97,24 @@ The API listens on `http://localhost:5080`.
 | `Jwt:SigningKey` | none | HMAC-SHA256 key. Secret; user-secrets or environment only. |
 | `Jwt:Issuer` / `Jwt:Audience` | `AttendanceApi` | |
 | `Jwt:AccessTokenMinutes` | `60` | No refresh tokens in v1. |
-| `SeedAdmin:*` | none | First admin account, created only if no admin exists. |
+| `SeedAdmin:*` | none | First admin account (`UserName`, `Password`, optional `DisplayName`, `Email`), created at startup only if no admin exists. If unset, a warning is logged and no admin is created. |
+| `Database:ApplyMigrationsOnStartup` | `false` (`true` in `appsettings.Development.json`) | Apply pending EF Core migrations when the API starts. Production should run migrations as a separate deployment step. |
+
+### Database migrations
+
+Migrations live in `src/AttendanceApi.Infrastructure/Persistence/Migrations` and are generated with the local `dotnet-ef` tool (no database needed to add one):
+
+```bash
+dotnet ef migrations add <Name> --project src/AttendanceApi.Infrastructure --output-dir Persistence/Migrations
+```
+
+Apply them to a database without starting the API:
+
+```bash
+dotnet ef database update --project src/AttendanceApi.Infrastructure --connection "<connection string>"
+```
+
+An integration test fails if the model changes without a new migration.
 
 ---
 
@@ -149,6 +166,19 @@ From sections 1 and 11 of the [implementation plan](docs/Implementation-Plan.md)
 | 2 | Rate = absences × 100 ÷ enrolled days, compared **unrounded** with the threshold. Enrolled days use each enrollment's own school calendar; a day enrolled at two schools counts once; zero enrolled days is "not determinable", never a division by zero. | Plan §7; avoids a rounded 9.5% being treated as 10%. |
 | 2 | Rate not determinable (Q8): method Rate → `NotDeterminable`; method Either → `Chronic` if the count result is chronic, otherwise `NotDeterminable`. `NotDeterminable` never raises an alert. | Product-owner answer. |
 | 2 | Audit columns store both the user's ID and name (`CreatedByUserId`/`CreatedBy`, etc.); the ID is null only for system writes such as the legacy import. Timestamps must be `DateTimeKind.Utc`. | Plan §9 ("the user's ID and name") and Q2. |
+| 3 | EF Core packages are 8.0.31 (the latest 8.0 patch at least two weeks old, matching the installed .NET 8 runtime); the `dotnet-ef` local tool moves from 8.0.11 to 8.0.31 to stay in step. | Picks up 8.0 security fixes; tool and runtime versions match. |
+| 3 | The Application layer exposes `IAttendanceDbContext` (DbSets + `SaveChangesAsync` + `Database` for transactions), implemented by `AttendanceDbContext` in Infrastructure. Application references only `Microsoft.EntityFrameworkCore`, not the SQL Server provider. | Use cases query with LINQ directly (plan: all queries in LINQ) without a repository layer. |
+| 3 | Table names are singular, as listed in plan §3. Enums (`ChronicMethod`, `Role`, issue `Reason`) are stored by name with a check constraint listing the allowed names. | Readable in the database and reports; the database rejects unknown values. |
+| 3 | Rules within a row are also database check constraints (dates in order, `MinutesLate ≥ 0`, thresholds in range, totals add up, submission row counts add up). Rules across rows that SQL Server can't express declaratively (no overlapping school years or terms) stay in the domain. | Defence in depth without triggers or stored procedures. |
+| 3 | Unique keys: (StudentId, Date) on records (D-06); (SchoolId, Label) on school years; (SchoolId, Date) on non-instructional days; Code; UserName; and the filtered unique index `UX_StudentAlert_OpenChronicAbsence` on (StudentId, SchoolYearLabel) where `ResolvedAt IS NULL AND AlertType = 'CHRONIC_ABSENCE'` (BR-09). | Plan §3; the database enforces what the legacy procedure only attempted. |
+| 3 | Foreign keys use `Restrict` (no cascading deletes), except child rows that only exist with their parent: settings → school, terms → school year, user-school assignments → user, issues → submission. Audit user IDs (`CreatedByUserId`, `SubmittedByUserId`, etc.) are foreign keys to `AppUser`. | Attendance history can't disappear through a cascade. |
+| 3 | Every `DateTime` is stored as `datetime2` and read back with `DateTimeKind.Utc` (a model-wide value converter); `DateOnly` maps to `date`. `AttendanceRecord.RowVersion` is a SQL Server `rowversion`. | Q2 (UTC everywhere); optimistic concurrency for the save flow. |
+| 3 | Seeding runs in code at startup (`DatabaseInitializer`), not with `HasData`: the §4 codes only when the code table is empty, and the first admin only when no admin exists, with the password hashed by ASP.NET Core `PasswordHasher<AppUser>`. Both are safe on every start. | `HasData` would insert codes even into a non-empty table (e.g. after a legacy import) and can't hash a password from configuration. |
+| 3 | Migrations are applied at startup only when `Database:ApplyMigrationsOnStartup` is true (Development and tests); otherwise use `dotnet ef database update`. A design-time factory lets `dotnet ef` run against the Infrastructure project alone. | Convenient locally, explicit in production. |
+| 3 | The connection string is read when the DbContext is first created and a missing value fails startup with a clear message. SQL Server retry-on-failure is enabled. The `/health` check now includes a database check. | Test hosts can override configuration; plan §9 asks health checks to report the database. |
+| 3 | Infrastructure references the ASP.NET Core shared framework (`Microsoft.AspNetCore.App`). | Needed for options binding and `PasswordHasher<T>` now, and for reading the current user from the JWT in Phase 4. |
+| 3 | `.editorconfig`: IDE0005 (unused usings) is also turned off for `**/Migrations/*.cs`. | Generated migration code otherwise breaks the warnings-as-errors build. |
+| 3 | Persistence integration tests (`tests/AttendanceApi.Api.IntegrationTests/Persistence`) share one Testcontainers SQL Server 2022 container and create a fresh migrated database per test. | Real SQL Server behaviour (filtered index, check constraints, rowversion) with isolated tests. |
 
 ---
 
@@ -193,7 +223,7 @@ Answers from the product owner (17 Oct 2026). They extend the plan and are bindi
 |---|---|---|
 | 1 | Solution, Docker Compose, README skeleton | Done |
 | 2 | Domain model and rules, with unit tests | Done |
-| 3 | EF Core context, configurations, migration, seed data | Not started |
+| 3 | EF Core context, configurations, migration, seed data | Done |
 | 4 | Save, history and chronic-status endpoints, with integration tests | Not started |
 | 5 | Admin endpoints (settings, calendar, issues log) | Not started |
 | 6 | Legacy import tool | Not started |

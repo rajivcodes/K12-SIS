@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- EF Core abstractions only (DbSet, LINQ operators); the SQL Server provider lives in Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AttendanceApi.Domain\AttendanceApi.Domain.csproj" />
   </ItemGroup>
 

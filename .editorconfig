@@ -55,3 +55,4 @@ dotnet_diagnostic.CA1848.severity = suggestion # LoggerMessage delegates
 [**/Migrations/*.cs]
 generated_code = true
 dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.IDE0005.severity = none
