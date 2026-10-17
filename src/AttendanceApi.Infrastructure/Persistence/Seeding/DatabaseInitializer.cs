@@ -34,13 +34,22 @@ public sealed partial class DatabaseInitializer
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        if (_databaseOptions.ApplyMigrationsOnStartup)
+        try
         {
-            await _db.Database.MigrateAsync(cancellationToken);
-        }
+            if (_databaseOptions.ApplyMigrationsOnStartup)
+            {
+                await _db.Database.MigrateAsync(cancellationToken);
+            }
 
-        await SeedAttendanceCodesAsync(cancellationToken);
-        await SeedAdminAsync(cancellationToken);
+            await SeedAttendanceCodesAsync(cancellationToken);
+            await SeedAdminAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Logged with context here; rethrown so the host stops instead of serving without a usable database.
+            LogInitializationFailed(ex, _databaseOptions.ApplyMigrationsOnStartup);
+            throw;
+        }
     }
 
     public async Task SeedAttendanceCodesAsync(CancellationToken cancellationToken = default)
@@ -76,6 +85,9 @@ public sealed partial class DatabaseInitializer
         await _db.SaveChangesAsync(cancellationToken);
         LogAdminSeeded(admin.UserName);
     }
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Database initialization failed (apply migrations: {ApplyMigrations}). Check ConnectionStrings:AttendanceDb and that SQL Server is reachable")]
+    private partial void LogInitializationFailed(Exception exception, bool applyMigrations);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Seeded {Count} standard attendance codes")]
     private partial void LogCodesSeeded(int count);

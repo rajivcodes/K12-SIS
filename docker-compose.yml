@@ -32,6 +32,9 @@ services:
       SeedAdmin__Password: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in .env}
     ports:
       - "8080:8080"
+    volumes:
+      - apilogs:/app/logs
 
 volumes:
   sqldata:
+  apilogs:

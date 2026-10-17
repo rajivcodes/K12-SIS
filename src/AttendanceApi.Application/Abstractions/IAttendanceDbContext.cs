@@ -6,6 +6,7 @@ using AttendanceApi.Domain.Students;
 using AttendanceApi.Domain.Submissions;
 using AttendanceApi.Domain.Users;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace AttendanceApi.Application.Abstractions;
@@ -48,6 +49,9 @@ public interface IAttendanceDbContext
 
     /// <summary>Used by the save flow to run one database transaction per save.</summary>
     DatabaseFacade Database { get; }
+
+    /// <summary>Cleared before a save is retried.</summary>
+    ChangeTracker ChangeTracker { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

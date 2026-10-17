@@ -17,5 +17,7 @@ WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
+# Serilog's rolling file sink writes to /app/logs; the non-root app user must own it.
+RUN mkdir -p /app/logs && chown app:app /app/logs
 USER app
 ENTRYPOINT ["dotnet", "AttendanceApi.Api.dll"]

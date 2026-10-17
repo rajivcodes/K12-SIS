@@ -1,7 +1,9 @@
 using AttendanceApi.Application.Abstractions;
 using AttendanceApi.Domain.Users;
+using AttendanceApi.Infrastructure.Auth;
 using AttendanceApi.Infrastructure.Persistence;
 using AttendanceApi.Infrastructure.Persistence.Seeding;
+using AttendanceApi.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -34,6 +36,23 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<DatabaseInitializer>();
+
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IDatabaseErrors, SqlServerDatabaseErrors>();
+        services.AddSingleton<INotificationSender, NoOpNotificationSender>();
+        services.AddSingleton<IPasswordHashing, PasswordHashing>();
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddSingleton<IAccessTokenIssuer, JwtTokenIssuer>();
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(
+                o => o.SigningKeyBytes().Length >= JwtOptions.MinimumKeyBytes,
+                $"Jwt:SigningKey must be set to at least {JwtOptions.MinimumKeyBytes} bytes (base64 recommended). Use user-secrets or an environment variable.")
+            .ValidateOnStart();
+        services.AddJwtAuthentication();
 
         services.AddHealthChecks().AddDbContextCheck<AttendanceDbContext>("database");
 
