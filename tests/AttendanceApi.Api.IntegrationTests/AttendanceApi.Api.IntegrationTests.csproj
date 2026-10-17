@@ -20,6 +20,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/AttendanceApi.Api/AttendanceApi.Api.csproj" />
+    <ProjectReference Include="../../src/AttendanceApi.LegacyImport/AttendanceApi.LegacyImport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../src/AttendanceApi.LegacyImport/Legacy/assumed-legacy-schema.sql" Link="LegacyImport/assumed-legacy-schema.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="LegacyImport/legacy-sample-data.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

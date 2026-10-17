@@ -1,0 +1,11 @@
+{
+  "ConnectionStrings": {
+    "Legacy": "",
+    "AttendanceDb": ""
+  },
+  "Import": {
+    "DryRun": false,
+    "ApplyMigrations": false,
+    "StudentBatchSize": 100
+  }
+}

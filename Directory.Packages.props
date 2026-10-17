@@ -17,6 +17,9 @@
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <!-- Structured logging (console + rolling file), configured from appsettings "Serilog" -->
     <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
+    <!-- Legacy import console tool -->
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
     <!-- Tests -->
