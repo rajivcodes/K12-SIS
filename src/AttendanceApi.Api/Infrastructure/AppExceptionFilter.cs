@@ -26,7 +26,9 @@ internal sealed partial class AppExceptionFilter : IExceptionFilter
         var (status, title, reason) = context.Exception switch
         {
             RequestValidationException e => (StatusCodes.Status400BadRequest, e.Title, null),
+            DomainException { Kind: DomainErrorKind.Conflict } => (StatusCodes.Status409Conflict, "Conflict", null),
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request", null),
+            ConflictException e => (StatusCodes.Status409Conflict, e.Title, null),
             AccountInactiveException e => (StatusCodes.Status401Unauthorized, e.Title, null),
             ForbiddenException e => (StatusCodes.Status403Forbidden, e.Title, null),
             NotFoundException e => (StatusCodes.Status404NotFound, e.Title, null),

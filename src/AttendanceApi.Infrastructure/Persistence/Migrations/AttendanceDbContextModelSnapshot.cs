@@ -342,6 +342,58 @@ namespace AttendanceApi.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AttendanceApi.Domain.Common.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(4000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("AuditEntry", (string)null);
+                });
+
             modelBuilder.Entity("AttendanceApi.Domain.Schools.School", b =>
                 {
                     b.Property<int>("Id")
@@ -643,6 +695,28 @@ namespace AttendanceApi.Infrastructure.Persistence.Migrations
                     b.HasIndex("SchoolId");
 
                     b.ToTable("AppUserSchool", (string)null);
+                });
+
+            modelBuilder.Entity("AttendanceApi.Infrastructure.Persistence.LegacyIdMap", b =>
+                {
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("LegacyId")
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("NewId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EntityType", "LegacyId");
+
+                    b.HasIndex("EntityType", "NewId");
+
+                    b.ToTable("LegacyIdMap", (string)null);
                 });
 
             modelBuilder.Entity("AttendanceApi.Domain.Alerts.StudentAlert", b =>

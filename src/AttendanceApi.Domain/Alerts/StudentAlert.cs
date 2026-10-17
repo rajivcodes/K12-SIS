@@ -79,6 +79,34 @@ public sealed class StudentAlert
         return new StudentAlert(studentId, currentSchoolId, ChronicAbsenceType, label, ChronicMessage(label, result), utcNow);
     }
 
+    /// <summary>Creates an alert from legacy data, keeping its type, message and resolution.</summary>
+    public static StudentAlert Import(
+        int studentId,
+        int schoolId,
+        string alertType,
+        SchoolYearLabel label,
+        string message,
+        DateTime raisedAt,
+        DateTime? resolvedAt,
+        Actor? resolvedBy)
+    {
+        var alert = new StudentAlert(
+            studentId,
+            schoolId,
+            Guard.Required(alertType, MaxAlertTypeLength, "Alert type").ToUpperInvariant(),
+            label,
+            string.IsNullOrWhiteSpace(message) ? "(imported alert without a message)" : message.Length > MaxMessageLength ? message[..MaxMessageLength] : message,
+            raisedAt);
+        if (resolvedAt is { } resolved)
+        {
+            alert.ResolvedAt = Guard.Utc(resolved, nameof(resolvedAt));
+            alert.ResolvedByUserId = resolvedBy?.UserId;
+            alert.ResolvedBy = resolvedBy?.UserName;
+        }
+
+        return alert;
+    }
+
     public void Resolve(Actor actor, DateTime utcNow)
     {
         if (!IsOpen)

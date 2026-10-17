@@ -1,3 +1,4 @@
+using AttendanceApi.Application.Admin;
 using AttendanceApi.Application.Attendance;
 using AttendanceApi.Application.Auth;
 using AttendanceApi.Application.Chronic;
@@ -20,6 +21,11 @@ public static class DependencyInjection
         services.AddScoped<RosterQuery>();
         services.AddScoped<AttendanceCodesQuery>();
         services.AddScoped<LoginHandler>();
+        services.AddScoped<AuditLog>();
+        services.AddScoped<SchoolSettingsAdmin>();
+        services.AddScoped<SchoolCalendarAdmin>();
+        services.AddScoped<SubmissionIssuesQuery>();
+        services.AddScoped<UsersAdmin>();
         return services;
     }
 }

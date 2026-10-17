@@ -2,6 +2,7 @@ using AttendanceApi.Application.Abstractions;
 using AttendanceApi.Domain.Alerts;
 using AttendanceApi.Domain.Attendance;
 using AttendanceApi.Domain.Calendar;
+using AttendanceApi.Domain.Common;
 using AttendanceApi.Domain.Schools;
 using AttendanceApi.Domain.Students;
 using AttendanceApi.Domain.Submissions;
@@ -46,6 +47,11 @@ public sealed class AttendanceDbContext : DbContext, IAttendanceDbContext
     public DbSet<AttendanceSubmission> AttendanceSubmissions => Set<AttendanceSubmission>();
 
     public DbSet<AttendanceSubmissionIssue> AttendanceSubmissionIssues => Set<AttendanceSubmissionIssue>();
+
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+
+    /// <summary>Legacy-to-new ID mapping used only by the legacy import tool, so it can run again safely.</summary>
+    public DbSet<LegacyIdMap> LegacyIdMaps => Set<LegacyIdMap>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

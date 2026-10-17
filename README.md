@@ -8,9 +8,9 @@ Requires the .NET 8 SDK and Docker.
 
 * **Everything in Docker:** copy `.env.example` to `.env`, fill in the SQL Server password, a JWT signing key (`openssl rand -base64 48`) and the first admin's credentials, then run `docker compose up --build`. Open `http://localhost:8080/swagger`, call `POST /api/v1/auth/login`, and use **Authorize** with the token.
 * **API on the host:** start SQL Server with `docker compose up -d sqlserver`, set the same values with `dotnet user-secrets` (see the [configuration reference](docs/Decisions-Log.md#configuration-reference)), then `dotnet run --project src/AttendanceApi.Api`.
-* **Tests:** `dotnet test` runs 165 domain unit tests and 56 integration tests against a real SQL Server 2022 started by Testcontainers. They include a regression test for legacy defect D-01.
+* **Tests:** `dotnet test` runs 165 domain unit tests and 70 integration tests against a real SQL Server 2022 started by Testcontainers. They include a regression test for legacy defect D-01.
 
-Migrations and the standard attendance codes are applied at startup in Development. Schools, students and enrollments come from the legacy import tool or directly from the database; v1 has no API for them.
+In Development the API applies migrations and seeds the standard codes and, into an empty database only, **demo data**: two schools, eleven students and attendance up to yesterday. Set `DEMO_USER_PASSWORD` to also get the demo accounts `lincoln.clerk`, `roosevelt.clerk` and `district.viewer`. Real schools, students and enrollments come from the legacy import tool.
 
 | Endpoint | Purpose |
 |---|---|
@@ -18,6 +18,7 @@ Migrations and the standard attendance codes are applied at startup in Developme
 | `GET  /api/v1/schools/{id}/attendance/{date}?grade=` | Roster for entry: enrolled students with any record already saved for that day. |
 | `GET  /api/v1/students/{id}/attendance?schoolYear=` | Attendance history for a school year, all schools, newest first. |
 | `GET  /api/v1/students/{id}/chronic-absenteeism?schoolYear=` | Totals, the count result, the rate result and the overall status. |
+| `/api/v1/admin/…` (Admin only) | School settings, school years, terms, closures, the skipped-row log, and user accounts. |
 | `POST /api/v1/auth/login`, `GET /api/v1/attendance-codes`, `GET /health` | Sign-in (JWT), code list, health check. |
 
 ## Key architectural decisions
@@ -43,4 +44,4 @@ Migrations and the standard attendance codes are applied at startup in Developme
 | Users and roles (G-09) | Individual accounts with the roles Admin, AttendanceClerk and Viewer, plus school assignments. |
 | Gaps found during the build | Answered by the product owner (Q1–Q9: UTC dates, current school, max future days, roster, inclusive exit dates, duplicate rows, inactive students, rate fallback). See the [decisions log](docs/Decisions-Log.md#open-questions-raised-during-implementation). |
 
-**Status:** phases 1–4 of 7 are done: solution, domain, persistence, and the main endpoints with tests. Admin endpoints and the legacy import tool are still to come.
+**Status:** phases 1–5 of 7 are done: solution, domain, persistence, the main endpoints and the admin endpoints, with tests. The legacy import tool is next.

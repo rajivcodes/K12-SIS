@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <!-- EF Core abstractions only (DbSet, LINQ operators); the SQL Server provider lives in Infrastructure. -->
+    <!-- EF Core (DbSet, LINQ, transactions, bulk ExecuteUpdate); provider-independent. SQL Server lives in Infrastructure. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
   </ItemGroup>
 
   <ItemGroup>

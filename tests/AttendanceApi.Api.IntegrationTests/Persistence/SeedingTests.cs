@@ -25,18 +25,20 @@ public class SeedingTests : PersistenceTestBase
     {
     }
 
-    private static DatabaseInitializer Initializer(AttendanceDbContext db, SeedAdminOptions? admin = null) =>
+    private static DatabaseInitializer Initializer(AttendanceDbContext db, SeedAdminOptions? admin = null, DemoDataOptions? demo = null) =>
         new(
             db,
             new PasswordHasher<AppUser>(),
             Options.Create(new DatabaseOptions { ApplyMigrationsOnStartup = true }),
             Options.Create(admin ?? ConfiguredAdmin),
+            Options.Create(demo ?? new DemoDataOptions()),
+            new TestClock(),
             NullLogger<DatabaseInitializer>.Instance);
 
-    private async Task InitializeAsync(SeedAdminOptions? admin = null)
+    private async Task InitializeAsync(SeedAdminOptions? admin = null, DemoDataOptions? demo = null)
     {
         await using var db = NewContext();
-        await Initializer(db, admin).InitializeAsync();
+        await Initializer(db, admin, demo).InitializeAsync();
     }
 
     [Fact]
@@ -119,5 +121,52 @@ public class SeedingTests : PersistenceTestBase
         await using var db = NewContext();
         Assert.False(await db.AppUsers.AnyAsync());
         Assert.Equal(9, await db.AttendanceCodes.CountAsync());
+    }
+
+    [Fact]
+    public async Task Demo_data_fills_an_empty_database_once()
+    {
+        var demo = new DemoDataOptions { Enabled = true, UserPassword = "Demo-User-Pw-1" };
+
+        await InitializeAsync(demo: demo);
+        await InitializeAsync(demo: demo);
+
+        await using var db = NewContext();
+        Assert.Equal(["Lincoln School", "Roosevelt School"], await db.Schools.OrderBy(s => s.Name).Select(s => s.Name).ToListAsync());
+        Assert.Equal(11, await db.Students.CountAsync());
+        Assert.Equal(12, await db.StudentEnrollments.CountAsync()); // the transfer student has two
+        Assert.True(await db.AttendanceRecords.CountAsync() > 300);
+        Assert.False(await db.AttendanceRecords.AnyAsync(r => r.Date >= new DateOnly(2026, 10, 15))); // nothing for today or later
+        Assert.Equal(11, await db.StudentAttendanceSummaries.CountAsync());
+        Assert.True(await db.StudentAlerts.CountAsync() >= 2);
+        Assert.Equal(
+            ["admin", "district.viewer", "lincoln.clerk", "roosevelt.clerk"],
+            await db.AppUsers.OrderBy(u => u.UserName).Select(u => u.UserName).ToListAsync());
+        Assert.Equal(1, await db.AuditEntries.CountAsync(a => a.Action == "DemoDataSeeded"));
+    }
+
+    [Fact]
+    public async Task Demo_data_never_touches_a_database_that_already_has_schools()
+    {
+        await using (var db = NewContext())
+        {
+            db.Schools.Add(Domain.Schools.School.Create("Real School"));
+            await db.SaveChangesAsync();
+        }
+
+        await InitializeAsync(demo: new DemoDataOptions { Enabled = true });
+
+        await using var check = NewContext();
+        Assert.Equal("Real School", (await check.Schools.SingleAsync()).Name);
+        Assert.False(await check.Students.AnyAsync());
+    }
+
+    [Fact]
+    public async Task Demo_data_is_off_by_default()
+    {
+        await InitializeAsync();
+
+        await using var db = NewContext();
+        Assert.False(await db.Schools.AnyAsync());
     }
 }

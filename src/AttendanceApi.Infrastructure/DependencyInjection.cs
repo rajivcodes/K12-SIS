@@ -19,6 +19,7 @@ public static class DependencyInjection
     {
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<SeedAdminOptions>(configuration.GetSection(SeedAdminOptions.SectionName));
+        services.Configure<DemoDataOptions>(configuration.GetSection(DemoDataOptions.SectionName));
 
         // The connection string is read when the context is first created, so test hosts can override it.
         services.AddDbContext<AttendanceDbContext>((sp, options) =>

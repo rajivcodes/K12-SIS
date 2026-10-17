@@ -71,6 +71,9 @@ public sealed class AccessGuard
         }
     }
 
+    /// <summary>For admin endpoints: the role is checked by the Admin policy; this rejects deactivated accounts.</summary>
+    public Task EnsureActiveUserAsync(CancellationToken cancellationToken) => EnsureActiveAsync(cancellationToken);
+
     private async Task EnsureActiveAsync(CancellationToken cancellationToken)
     {
         var active = await _db.AppUsers.AnyAsync(u => u.Id == _user.UserId && u.IsActive, cancellationToken);

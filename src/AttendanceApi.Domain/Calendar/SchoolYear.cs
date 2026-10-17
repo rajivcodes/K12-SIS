@@ -78,12 +78,12 @@ public sealed class SchoolYear
 
             if (other.Label == Label)
             {
-                throw new DomainException($"School year {Label} already exists for this school.");
+                throw new DomainException($"School year {Label} already exists for this school.", DomainErrorKind.Conflict);
             }
 
             if (Overlaps(other))
             {
-                throw new DomainException($"School year {Label} overlaps school year {other.Label}.");
+                throw new DomainException($"School year {Label} overlaps school year {other.Label}.", DomainErrorKind.Conflict);
             }
         }
     }
@@ -153,7 +153,7 @@ public sealed class SchoolYear
             && AttendanceDates.Overlaps(startDate, endDate, t.StartDate, t.EndDate));
         if (clash is not null)
         {
-            throw new DomainException($"Term overlaps term '{clash.Name}'.");
+            throw new DomainException($"Term overlaps term '{clash.Name}'.", DomainErrorKind.Conflict);
         }
     }
 }

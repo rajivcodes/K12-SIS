@@ -1,6 +1,7 @@
 using AttendanceApi.Domain.Alerts;
 using AttendanceApi.Domain.Attendance;
 using AttendanceApi.Domain.Calendar;
+using AttendanceApi.Domain.Common;
 using AttendanceApi.Domain.Schools;
 using AttendanceApi.Domain.Students;
 using AttendanceApi.Domain.Submissions;
@@ -46,6 +47,8 @@ public interface IAttendanceDbContext
     DbSet<AttendanceSubmission> AttendanceSubmissions { get; }
 
     DbSet<AttendanceSubmissionIssue> AttendanceSubmissionIssues { get; }
+
+    DbSet<AuditEntry> AuditEntries { get; }
 
     /// <summary>Used by the save flow to run one database transaction per save.</summary>
     DatabaseFacade Database { get; }

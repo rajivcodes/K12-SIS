@@ -48,6 +48,15 @@ public sealed class AccountInactiveException : AppException
     }
 }
 
+/// <summary>409: the change clashes with existing data (duplicate name, overlapping dates).</summary>
+public sealed class ConflictException : AppException
+{
+    public ConflictException(string detail)
+        : base("Conflict", detail)
+    {
+    }
+}
+
 /// <summary>422: the request is well formed but breaks a business rule for the whole batch (e.g. a disallowed date).</summary>
 public sealed class BusinessRuleException : AppException
 {
